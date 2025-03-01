@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ✅ PWA Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007BFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Facturation Lasry">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <title>Facturation Lasry</title>
+  
+  <style>
+    /* Styles généraux */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background-color: #fff;
+      border-radius: 5px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label, input, select, textarea {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .invoice {
+      padding: 20px;
+      border: 2px solid #007BFF;
+      margin-top: 20px;
+    }
+    .invoice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #007BFF;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .invoice-header img {
+      max-height: 80px;
+    }
+    .invoice-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-style: italic;
+    }
+    /* Écran de verrouillage */
+    #passwordOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #007BFF, #00A1FF);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 1s ease;
+    }
+    #passwordOverlay img {
+      max-width: 200px;
+      margin-bottom: 20px;
+    }
+    #passwordOverlay input {
+      padding: 10px;
+      font-size: 1.2em;
+      border-radius: 5px;
+      width: 250px;
+    }
+    #errorMsg {
+      color: red;
+      margin-top: 10px;
+      display: none;
+    }
+    @media print {
+      @page { size: landscape; }
+      .container, .invoice { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Écran de verrouillage -->
+  <div id="passwordOverlay">
+    <img src="icon-192.png" alt="Logo Lasry">
+    <input type="password" id="passwordInput" placeholder="Mot de passe">
+    <button onclick="checkPassword()">Entrer</button>
+    <p id="errorMsg">Mot de passe incorrect</p>
+  </div>
+
+  <div class="container">
+    <h1>Générateur de Factures</h1>
+    <label for="centre">Centre :</label>
+    <select id="centre">
+      <option value="A">Anjou</option>
+      <option value="L">Laval</option>
+      <option value="W">West Island</option>
+      <option value="Ac">Acadie</option>
+    </select>
+    
+    <label for="invoiceNumber">Numéro :</label>
+    <input type="number" id="invoiceNumber" min="1" placeholder="001">
+    
+    <label for="studentName">Nom de l'élève :</label>
+    <input type="text" id="studentName">
+    
+    <label for="tutorName">Nom du tuteur :</label>
+    <input type="text" id="tutorName">
+    
+    <label for="paymentReason">Raison :</label>
+    <textarea id="paymentReason"></textarea>
+    
+    <label for="paymentAmount">Montant ($) :</label>
+    <input type="number" id="paymentAmount" step="0.01">
+    
+    <button onclick="generateInvoice()">Générer la Facture</button>
+    
+    <div id="invoicePreview" class="invoice" style="display:none;">
+      <div class="invoice-header">
+        <img src="icon-192.png" alt="Logo">
+        <h2>Facture</h2>
+        <p id="finalInvoiceNumber"></p>
+      </div>
+      <p><strong>Élève :</strong> <span id="previewStudentName"></span></p>
+      <p><strong>Montant :</strong> $<span id="previewPaymentAmount"></span></p>
+      <p><strong>Raison :</strong> <span id="previewPaymentReason"></span></p>
+      <div class="invoice-footer">
+        <p>Merci de votre confiance,</p>
+        <p><em id="previewTutorName"></em></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function checkPassword() {
+      if (document.getElementById("passwordInput").value === "Lasry") {
+        document.getElementById("passwordOverlay").style.opacity = "0";
+        setTimeout(() => document.getElementById("passwordOverlay").style.display = "none", 1000);
+      } else {
+        document.getElementById("errorMsg").style.display = "block";
+      }
+    }
+
+    function generateInvoice() {
+      let centreCode = document.getElementById("centre").value;
+      let today = new Date();
+      let formattedDate = today.getFullYear() + "-" + 
+                          String(today.getMonth() + 1).padStart(2, '0') + "-" +
+                          String(today.getDate()).padStart(2, '0');
+      let invoiceNum = document.getElementById("invoiceNumber").value.padStart(3, '0');
+      let invoiceID = centreCode + "-" + formattedDate + "-" + invoiceNum;
+      
+      document.getElementById("finalInvoiceNumber").textContent = "No: " + invoiceID;
+      document.getElementById("previewStudentName").textContent = document.getElementById("studentName").value;
+      document.getElementById("previewPaymentAmount").textContent = parseFloat(document.getElementById("paymentAmount").value).toFixed(2);
+      document.getElementById("previewPaymentReason").textContent = document.getElementById("paymentReason").value;
+      document.getElementById("previewTutorName").textContent = document.getElementById("tutorName").value;
+      
+      document.getElementById("invoicePreview").style.display = "block";
+      document.title = invoiceID;
+    }
+  </script>
+
+</body>
+</html>
